@@ -1,0 +1,34 @@
+TASK 2 – VIDEO-SURVEILLANCE FILE ALLOCATION
+
+2.1 Operations
+32 cameras continuously append large recording segments (high-frequency sequential writes). Playback reads mostly from beginning to end (sequential reads). Time searches locate a segment and then seek within it (direct/random access). Retention periodically deletes segments older than 30 days. Metadata updates occur when a segment is created, closed, indexed or deleted.
+
+2.2 Allocation comparison
+Contiguous: excellent sequential and direct access; simple address calculation; growth can fail due to lack of adjacent space and external fragmentation.
+Linked: easy growth and no external fragmentation; sequential access is acceptable, but reaching block k requires pointer traversal O(k), and a damaged pointer can break the chain.
+FAT: links are stored in a central table; if cached, traversal uses memory lookups, but reaching block k is still O(k) table steps. FAT is a metadata concentration/corruption risk.
+Indexed: index maps logical blocks to physical blocks; supports direct access and non-adjacent growth, at the cost of index-block storage and extra index reads/cache management.
+Recommendation: extent-based indexed allocation with bounded time segments. Large extents preserve sequential throughput; a time-to-segment index enables time searches; deleting whole old segments simplifies retention.
+
+2.3 Cost calculations
+4 GiB = 4 × 2^30 bytes; block size = 4 KiB = 2^12 bytes.
+Number of blocks = 2^32 / 2^12 = 2^20 = 1,048,576.
+To locate the last block (excluding its data read):
+• Contiguous: one extent/base lookup (no pointer-chain reads).
+• Linked: worst case 1,048,575 pointer reads.
+• FAT: if FAT is resident in RAM, zero extra disk reads for FAT entries but up to 1,048,575 in-memory table lookups.
+• Indexed: depends on tree/index layout; with a two-level root/leaf mapping, up to two cold index-block reads; cached index blocks reduce this.
+Inode: 4 KiB / 4 bytes = 1,024 addresses per indirect block.
+Data blocks = 12 + 1,024 + 1,024^2 + 1,024^3 = 1,074,791,436 blocks. Capacity = 1,074,791,436 × 4 KiB = 4,402,448,121,856 bytes (approximately 4.004 TiB).
+
+2.4 Free-space management
+Bit vector: one bit per allocation block; easy to find runs but metadata scales with disk size.
+Linked free list: each free block points to next; little central metadata but long traversal.
+Grouping: one free block stores addresses of many free blocks; retrieves groups efficiently but group blocks need maintenance.
+Counting: stores start and run length; compact for contiguous free extents, weaker when highly fragmented.
+4 TiB = 2^42 bytes. Dividing by 4 KiB = 2^12 bytes gives 2^30 blocks. Bit vector = 2^30 bits = 2^27 bytes = 128 MiB. FAT with 4-byte entries for 2^30 blocks requires 4 GiB.
+
+Complete-code explanation
+First-fit scans from block 0 for the first run of ten adjacent free blocks. In the supplied sequence, free space is split into runs after B and D are released; total free blocks can exceed ten while no individual run is long enough. Indexed allocation reserves one index block and stores the ten data blocks anywhere free, so it succeeds despite fragmentation.
+Complexity: first-fit worst case O(BLOCKS); indexed allocation scan O(BLOCKS) in this simple model, with O(size) index storage.
+Alternative FAT: block k requires O(k) in-memory FAT lookups if the table is cached; RAM use is number-of-blocks × entry size. Damage to FAT can affect many chains; mirrored/checksummed copies and backups improve recovery.
