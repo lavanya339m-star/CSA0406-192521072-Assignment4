@@ -1,0 +1,25 @@
+TASK 3 – MODERN FILE SYSTEMS
+
+3.1 Comparison
+FAT32: broad compatibility; 4 GiB minus 1 byte maximum file; no journaling, native snapshots or end-to-end checksums.
+NTFS: Windows default; journaling; file/volume limits are very large and version-dependent; Volume Shadow Copy is an OS service, not a basic NTFS CoW snapshot feature.
+ext4: Linux general purpose; JBD2 metadata journal; data=journal/ordered/writeback modes; metadata checksums; no native filesystem snapshots.
+XFS: Linux large-file and parallel-I/O filesystem; metadata journaling and CRC metadata; no native filesystem snapshots.
+Btrfs: Linux CoW; subvolume snapshots; data and metadata checksums; compression support.
+ZFS: CoW transactional storage; snapshots/clones; end-to-end checksums; pooled storage and redundancy features.
+APFS: Apple platforms; CoW metadata, snapshots/clones and metadata checksums. Exact maximum sizes vary by implementation/version; avoid quoting a single limit without specifying version.
+
+3.2 Crash consistency
+A power failure during metadata update can leave allocation maps, directories and inode metadata inconsistent. Journaling records changes before committing; recovery replays committed transactions or discards incomplete ones. Journaling protects filesystem structure, not necessarily every application write.
+ext4 modes: data=journal journals data and metadata (more writes); data=ordered journals metadata and writes associated data before metadata commit (common default); data=writeback journals metadata without the same data-order guarantee, so stale data may appear after a crash.
+CoW writes modified blocks elsewhere and atomically switches metadata references; checksums detect corruption, but backups and application transactions remain necessary.
+
+3.3 Device choices
+Windows/Linux pen drive: exFAT for modern large-file compatibility (install exFAT support on Linux); FAT32 only for legacy devices.
+Linux database server: ext4 or XFS after database-vendor guidance and workload benchmarks; use reliable power protection and tested backups.
+Laptop: use OS-native supported filesystem (NTFS Windows, APFS macOS, ext4/Btrfs Linux).
+Snapshot backup server: Btrfs or ZFS for snapshots/checksums; plan memory, redundancy and administration.
+
+3.4 Inspection commands
+Run ./inspect_fs.sh. Use stat, df -i, ls -i, findmnt. If the actual mounted device is ext4 and permissions allow, use sudo tune2fs -l /dev/<device> or sudo dumpe2fs -h /dev/<device>. Container/WSL overlay mounts may hide the backing device; report that limitation rather than inventing block size.
+CoW alternative: small random writes may trigger new block allocation and metadata updates; snapshots initially share extents and grow as blocks diverge; checksums add CPU/metadata overhead but detect corruption. Recovery replays consistent metadata trees, but recovery time depends on device and workload; benchmark representative database I/O.
