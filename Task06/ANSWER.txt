@@ -1,0 +1,19 @@
+TASK 6 – VIDEO-STREAMING STORAGE DESIGN
+
+Stage 1: Workload and targets
+200,000 students; 300 MB–2 GB videos; upload once, read many times; demand peaks in first week; users seek to arbitrary minutes. Targets (design goals, not guarantees): cached playback start p95 <2 seconds; no single disk failure removes the only copy; hot-content cache hit ratio ≥80%; indexed seek reads one media chunk plus index metadata.
+
+Stage 2: Architecture
+Use HDD/RAID-6 or mirrored capacity tier for durable origin, SSD tier for popular first-week videos/chunks, RAM cache for hottest metadata/chunks, cloud object storage for off-site origin/backup/overflow, and CDN edge nodes near students. Use a filesystem suited to the OS and operations (e.g., XFS/ext4 on Linux origin); use extent-based allocation and independent media chunks.
+
+Stage 3: Decisions
+Application chunk: 4 MiB, independent of filesystem block size. Use indexed time-to-chunk metadata. Use Linux none or mq-deadline depending on device/kernel. Cache by popularity and recency; pre-warm top 20%. Keep at least two independent durable copies plus off-site copy, or use erasure coding with tested recovery.
+
+Stage 4: Calculations (explicit assumptions)
+Assume 1,200 videos averaging 700 MiB: catalogue = 840,000 MiB = 820.3 GiB. Two copies ≈1.60 TiB before overhead. Hot 20% = 240 videos ≈164.1 GiB. A 700 MiB video has 175 chunks of 4 MiB. If 20,000 users concurrently stream at 5 Mbit/s, payload throughput = 100,000 Mbit/s = 100 Gbit/s before overhead. A seek maps time to chunk and reads one 4 MiB chunk plus index metadata; a naïve midpoint scan could read about 87 chunks. These are planning calculations, not measured performance.
+
+Stage 5: Demonstration
+Run python3 streaming_model.py. It calculates capacity, hot set, throughput and illustrative device service times using stated assumed rates. For actual evaluation, run fio or a representative file-read test on two designs and report hardware, command, cache state and repeated measurements. Do not describe model estimates as physical benchmarks.
+
+Alternative: cloud object storage + CDN
+Students in different cities fetch from nearby CDN edges, reducing origin distance and start latency for cached content. Cost includes stored GB-month, requests, CDN transfer/egress, cache fill and replication. Operations are simpler than maintaining disks/servers but vendor dependence, egress and lifecycle policies matter. Use current provider pricing for a real monthly estimate.
