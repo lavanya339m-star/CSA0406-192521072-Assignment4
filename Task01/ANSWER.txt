@@ -1,0 +1,25 @@
+TASK 1 – FILE-SYSTEM DESIGN REVIEW
+
+1.1 Weaknesses
+• Name collisions: a single namespace allows different students to choose identical names.
+• Poor administration: 12,000 entries make ownership, quota and lifecycle administration difficult; a naïve search is O(F).
+• Contiguous allocation: file growth requires adjacent free blocks; external fragmentation can prevent growth even when total free space is sufficient.
+• Privacy failure: without permissions, one student can read, modify or delete another student's work.
+• Backup/recovery: flat organisation complicates per-user restore, retention and auditing.
+• Collaboration: manual copies create stale versions and duplicate data.
+• Weak metadata: names alone do not record ownership, timestamps, checksums, retention and access policy.
+
+1.2 Improved design
+/srv/college/
+  users/<institutional-ID>/{documents,coursework,submissions}
+/srv/college/courses/<course-code>/resources
+/srv/college/groups/<project-ID>
+/srv/college/archive/<year>
+Use institutional ID as stable directory key and descriptive filenames with revision history. Store owner UID, group GID, size, timestamps, file type, ACL/mode, checksum and retention label. Use owner-only 0700 home directories, course read access for enrolled students, staff write access, and group ACLs/default ACLs for approved project members. Use quotas, audit logs, versioned encrypted backups and tested restores. Share group directories directly; symbolic links are convenience references, not security controls.
+
+1.3 Design defence (under 100 words)
+Institutional-ID home directories separate each student's data. Owner-only permissions and ACLs prevent unauthorised reading or modification. Course resources are readable by enrolled users, while staff retain controlled write access. Group-project directories grant access only to approved members through group ownership and ACLs. Quotas prevent one account exhausting shared storage, and versioned backups support recovery. This provides private-by-default storage while allowing explicitly authorised collaboration.
+
+Alternative: cloud drive
+Use institutional identity, groups, shared drives, MFA, audit logs, retention and provider versioning. Search relies on provider indexes; actual open latency depends on network, authentication, cache and region rather than a universal Big-O. Cloud replicas/version history and synced local copies consume extra capacity. The college retains identity and sharing-policy control but has less physical-placement control; verify data residency, audit export, exit and recovery terms.
+Complexity: linear directory scan O(F); indexed lookup often near O(log F) or hash lookup average O(1), implementation-dependent. Path lookup visits each directory component.
