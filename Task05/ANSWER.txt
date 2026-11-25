@@ -1,0 +1,15 @@
+TASK 5 – DISTRIBUTED AND CLOUD STORAGE
+
+NFS: remote shared filesystem with familiar file/directory semantics; good on a reliable LAN; server/network may bottleneck; consistency depends on protocol, client caching and leases; availability depends on server failover.
+HDFS: distributed filesystem designed for large sequential files and high throughput; typically replicates blocks across nodes; not ideal for low-latency small random updates.
+Ceph: distributed platform with object, block and filesystem interfaces; scales across nodes and uses replication or erasure coding; operational complexity is higher.
+Cloud object storage (e.g., S3/GCS): bucket/key API, elastic capacity and provider-managed durability; request latency, retrieval tiers, egress and network path affect cost/performance. Check the provider's documented consistency guarantees.
+
+Replication
+Three replicas can tolerate failures according to placement and acknowledgement policy. Place replicas across independent hosts/racks/zones. Three full replicas require approximately 3× raw capacity before metadata/spares. Strong consistency provides a defined visibility order after writes but may require coordination. Eventual consistency allows asynchronous convergence; applications must tolerate stale reads/conflicts where applicable. Guarantees vary by product/API.
+
+Device management
+Drivers translate generic OS requests to controller commands and handle interrupts/errors. Buffering bridges speed differences and combines small I/O. Caching retains hot blocks/metadata in RAM. Spooling queues work for serial devices. Block-device interface exposes addressable blocks; filesystem maps file offsets to blocks and submits I/O through block layer/scheduler.
+
+Alternative: one NFS server
+A single server avoids replica overhead (one primary copy) but becomes a throughput and availability bottleneck as users increase. Read/write latency rises with contention and network/server saturation. A server failure can make the entire share unavailable unless a separate failover/backup system exists. Replicated distributed storage consumes more capacity and coordination but improves failure tolerance and aggregate throughput.

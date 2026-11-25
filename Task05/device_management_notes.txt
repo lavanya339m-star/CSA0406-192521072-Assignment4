@@ -1,0 +1,9 @@
+Device-management evidence checklist:
+1. Identify block devices: lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
+2. Inspect scheduler: cat /sys/block/<disk>/queue/scheduler
+3. Inspect mount and free space: findmnt -T . ; df -h .
+Interpretation:
+- Drivers translate generic I/O requests to controller commands.
+- Buffering absorbs speed differences; caching reuses hot data.
+- Spooling queues work for serial devices.
+- The block layer exposes addressable blocks to filesystems.
